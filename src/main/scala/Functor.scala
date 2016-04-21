@@ -7,6 +7,25 @@ trait Functor[Container[_]] { // abstract over Container (type constructor)
   /** map a function from A to B on Container with As
     * to produce Container with B's */
   def map[A, B](contA: Container[A])(funAtoB: A => B): Container[B]
+
+  // derived methods
+
+  /** lift function operating of A (type of elements of container) and B
+    * to function that transforms Container[A] into Container[B] */
+  def lift[A, B](funAtoB: A => B): Container[A] => Container[B] =
+    contA => map(contA)(funAtoB)
+
+  /** replace content of Container[A] with with value b */
+  def as[A, B](fa: Container[A], b: => B): Container[B] =
+    map(fa)(_ => b)
+
+  /** clear the content, preserving the content */
+  def void[A](contA: Container[A]): Container[Unit] =
+    as(contA, ()) // WTF is ()
+
+  // TODO fproduct
+
+  // TODO compose
 }
 
 trait FunctorLaws {
