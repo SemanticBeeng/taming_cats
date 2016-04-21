@@ -1,6 +1,13 @@
 import simulacrum._
 import scala.language.higherKinds
 
+/*
+ * Based on awesome video serie:
+ * Functional Structures in Scala by Michael Pilquist
+ * part: FSiS Part 1 - Type Constructors, Functors, and Kind Projector
+ * https://www.youtube.com/watch?v=Dsd4pc99FSY
+ */
+
 /** Covariant functor */
 trait Functor[Container[_]] { // abstract over Container (type constructor)
 
