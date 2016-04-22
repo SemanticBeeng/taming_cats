@@ -1,3 +1,5 @@
+import java.awt.Container
+
 import simulacrum._
 import scala.language.higherKinds
 
@@ -9,13 +11,14 @@ import scala.language.higherKinds
  */
 
 /** Covariant functor */
-trait Functor[Container[_]] { // abstract over Container (type constructor)
+@typeclass trait Functor[Container[_]] { // abstract over Container (type constructor)
+  self => // alias for this class; usefull in compose inner trait
 
   /** map a function from A to B on Container with As
     * to produce Container with B's */
   def map[A, B](contA: Container[A])(funAtoB: A => B): Container[B]
 
-  // derived methods
+  // derived methods; they work the right way if map is law abiding
 
   /** lift function operating of A (type of elements of container) and B
     * to function that transforms Container[A] into Container[B] */
@@ -28,14 +31,28 @@ trait Functor[Container[_]] { // abstract over Container (type constructor)
 
   /** clear the content, preserving the content */
   def void[A](contA: Container[A]): Container[Unit] =
-    as(contA, ()) // WTF is ()
+    as(contA, ()) // WTF is () empty list?
 
-  // TODO fproduct
+  def compose[OtherFunctor[_]](implicit OtherFunctor: Functor[OtherFunctor]): // implicit ensure that OtherFun is a functor
+       Functor[Lambda[OtherContainer => Container[OtherFunctor[OtherContainer]]]] = // should be
+        // Functor[Container[OtherFun[?]]] but ? can't handle it
+        // 33:17 more how it works
+    new Functor[Lambda[OtherContainer => Container[OtherFunctor[OtherContainer]]]] {
+      def map[A, B](composedCont: Container[OtherFunctor[A]])(f: A => B): Container[OtherFunctor[B]] =
+        self.map(composedCont)(ga => OtherFunctor.map(ga)(a => f(a)))
+    }
 
-  // TODO compose
+  // TODO implement fproduct from cats
 }
 
 trait FunctorLaws {
+
+  // FSiS Part 2 https://youtu.be/tD_EyIKqqCk?list=PLFrwDVdSrYE6dy14XCmUtRAJuhCxuzJp0&t=135
+  // TODO some package.scala maybe implicits in package object?
+  // TODO operator =:=
+  // TODO what is IsEq._
+  // TODO object FunctorLaws with apply method
+  // TODO why other param is not implicit?
 
   // identity law
   def identity[Container[_], A](contA: Container[A])(implicit testedFunctor: Functor[Container]) =
@@ -56,11 +73,13 @@ trait FunctorLaws {
 object Functor {
 
   implicit val listFunctor: Functor[List] = new Functor[List] {
-    def map[A, B](list: List[A])(fun: A => B): List[B] = list.map(fun)
+    override def map[A, B](list: List[A])(fun: A => B): List[B] =
+      list.map(fun)
   }
 
   implicit val optionFunctor: Functor[Option] = new Functor[Option] {
-    override def map[A, B](option: Option[A])(fun: (A) => B): Option[B] = option.map(fun)
+    override def map[A, B](option: Option[A])(fun: (A) => B): Option[B] =
+      option.map(fun)
   }
 
 //  type OneArgFun[X] = Function1[X, _]
