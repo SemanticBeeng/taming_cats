@@ -33,6 +33,11 @@ import scala.language.higherKinds
   def void[A](contA: Container[A]): Container[Unit] =
     as(contA, ()) // WTF is () empty list?
 
+  def fproduct[A, B](contA: Container[A])(funAtoB: A => B): Container[(A,B)] = {
+    def tupleArgumentWithdResult(a: A): (A, B) = (a, funAtoB(a))
+    map(contA)(tupleArgumentWithdResult)
+  }
+
   def compose[OtherFunctor[_]](implicit OtherFunctor: Functor[OtherFunctor]): // implicit ensure that OtherFun is a functor
        Functor[Lambda[OtherContainer => Container[OtherFunctor[OtherContainer]]]] = // should be
         // Functor[Container[OtherFun[?]]] but ? can't handle it
@@ -40,9 +45,9 @@ import scala.language.higherKinds
     new Functor[Lambda[OtherContainer => Container[OtherFunctor[OtherContainer]]]] {
       def map[A, B](composedCont: Container[OtherFunctor[A]])(f: A => B): Container[OtherFunctor[B]] =
         self.map(composedCont)(ga => OtherFunctor.map(ga)(a => f(a)))
+      // TODO check implementation
+      // self.map(composedCont)(ga => OtherFunctor.lift(f(a))
     }
-
-  // TODO implement fproduct from cats
 }
 
 trait FunctorLaws {
