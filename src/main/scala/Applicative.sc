@@ -43,7 +43,7 @@ scala> Applicative[Option].map4(Option(1), Option(2), Option(3), Option(4))(_ + 
 res2: Option[Int] = Some(10)
 */
 
-/*
+/* TODO importante example
 scala> Applicative[List] compose Applicative[Option]
 res0: Applicative[[OtherEffect]List[Option[OtherEffect]]] = Applicative$$anon$1@4bf6bbc1
 
