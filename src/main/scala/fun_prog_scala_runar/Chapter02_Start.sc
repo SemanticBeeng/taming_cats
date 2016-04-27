@@ -4,7 +4,6 @@ val daNothing: Unit = ()
 // - can have val, def
 // - can be passed around!)
 
-
 val lessThan = new Function2[Int, Int, Boolean] {
   override def apply(a: Int, b: Int) = a < b
 }
@@ -27,11 +26,11 @@ def oneLessThanThis = curryA(1)
 oneLessThanThis(2)
 oneLessThanThis(0)
 
-def uncurry[A, B, C](f: A => B => C): (A, B) => C = ???
-//  a, b => f(a) TODO
+def uncurry[A, B, C](f: A => (B => C)): (A, B) => C =
+  (a, b) => f(a)(b)
 
-def compose2[A, B, C](f: B => C, g: A => B): A => C
- = a => f(g(a))
+def compose2[A, B, C](f: B => C, g: A => B): A => C =
+  a => f(g(a))
 
 def len(x: String) = x.length
 def multi2(x: Int) = x * 2

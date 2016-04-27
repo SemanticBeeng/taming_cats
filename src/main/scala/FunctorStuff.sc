@@ -46,6 +46,7 @@ res3: List[Int] = List(10, 10, 10, 10, 10, 10)
 scala> val funLiOp = Functor[List] compose Functor[Option]
 funLiOp: Functor[[OtherContainer]List[Option[OtherContainer]]] = Functor$$anon$1@15cedc1f
 
+// TODO important example
 scala> val xs: List[Option[Int]] = List(Some(1), None, Some(2))
 xs: List[Option[Int]] = List(Some(1), None, Some(2))
 
