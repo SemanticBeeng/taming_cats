@@ -100,6 +100,13 @@ object Applicative {
         f <- ff
       } yield f(a)
   }
+
+  implicit val streamApplicative: Applicative[Stream] = new Applicative[Stream] {
+
+    override def pure[A](value: A): Stream[A] = ???
+
+    override def apply[A, B](fa: Stream[A])(ff: Stream[(A) => B]): Stream[B] = ???
+  }
 }
 
 
