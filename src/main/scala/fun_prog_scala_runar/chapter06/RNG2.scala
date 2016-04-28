@@ -1,6 +1,9 @@
 package fun_prog_scala_runar.chapter06
 
-
+// TODO check repo:
+// https://github.com/fpinscala/fpinscala/blob/master/exercises/src/main/scala/fpinscala/state/State.scala
+// TODO check answers:
+// https://github.com/fpinscala/fpinscala/blob/master/answers/src/main/scala/fpinscala/state/State.scala
 
 trait RNG2 {
 

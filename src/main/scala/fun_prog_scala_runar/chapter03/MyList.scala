@@ -1,5 +1,11 @@
 package fun_prog_scala_runar.chapter03
 
+/* TODO check repo:
+ * https://github.com/fpinscala/fpinscala/blob/master/exercises/src/main/scala/fpinscala/datastructures/List.scala
+ * and answers:
+ * https://github.com/fpinscala/fpinscala/blob/master/answers/src/main/scala/fpinscala/datastructures/List.scala
+ */
+
 sealed trait MyList[+A] {
 
   def tail: MyList[A]
