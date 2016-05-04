@@ -35,7 +35,6 @@ import scala.language.higherKinds
   def apply2[A, B, Z](fa: Effect[A], fb: Effect[B])(ff: Effect[(A,B) => Z]): Effect[Z] =
     apply(fa)(apply(fb)(map(ff)(f => b => a => f(a,b)))) // TODO understand/rename/extract variables it
 
-  // TODO scaladoc with interpreteation in terms of effect
   override def map[A, B](contA: Effect[A])(funAtoB: A => B): Effect[B] =
     apply(contA)(pure(funAtoB)) // TODO how it works
 

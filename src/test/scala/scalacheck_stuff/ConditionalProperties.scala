@@ -10,8 +10,10 @@ class ConditionalProperties extends Properties("misc stuff") {
     (n >= 0 && n < 1000) ==> (List.fill(n)("").length == n)
   }
 
+  /*
   property("will gave up") = forAll{ (n:Int) =>
     (n == 0) ==> (n == 0)
   }
+  */
 
 }

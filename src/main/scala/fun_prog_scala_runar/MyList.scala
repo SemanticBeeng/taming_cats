@@ -1,4 +1,4 @@
-package fun_prog_scala_runar.chapter03
+package fun_prog_scala_runar
 
 /* TODO check repo:
  * https://github.com/fpinscala/fpinscala/blob/master/exercises/src/main/scala/fpinscala/datastructures/List.scala
@@ -46,7 +46,8 @@ object MyList {
     case Cons(x, xs) => x * product(xs)
   }
 
-  def apply[A](as: A*): MyList[A] = // variadic function (Java.. varargs) in Scala it is Seq
+  // variadic function (Java.. varargs) in Scala it is Seq
+  def apply[A](as: A*): MyList[A] =
     if(as.isEmpty) Nil
     else Cons(as.head, apply(as.tail:_*))
 }
