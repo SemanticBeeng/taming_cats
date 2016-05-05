@@ -14,6 +14,10 @@ import scala.language.higherKinds
   * map apply function in context (effect)
   * pure put in context (effect)
   *
+  * Minimal combinators:
+  * - map2, unit
+  * - apply, unit
+  *
   * More stuff:
   *  The Essence of the Iterator Pattern: https://www.cs.ox.ac.uk/jeremy.gibbons/publications/iterator.pdf
   *  Applicative programming with effects: http://staff.city.ac.uk/~ross/papers/Applicative.pdf
@@ -24,10 +28,13 @@ import scala.language.higherKinds
   *   Option - effect of having a value or not having a value
   *   LIst - effect of having multiple values
   */
-@typeclass trait Applicative[Effect[_]] extends Functor[Effect] {  self =>
+@typeclass
+trait Applicative[Effect[_]] extends Functor[Effect] {  self =>
 
   /** Take value (ouside effect) and put (lift) into effect / container  */
   def pure[A](value: A): Effect[A]
+
+  def unit[A](a: => A): Effect[A] = pure[A](a) // aleternative name
 
   /**
     * Apply function under effect for value in effect
@@ -84,10 +91,10 @@ import scala.language.higherKinds
         Applicative[Lambda[OtherEffect => Effect[Other[OtherEffect]]]] =
     new Applicative[Lambda[OtherEffect => Effect[Other[OtherEffect]]]] {
 
-      override def pure[A](value: A): Effect[Other[A]] =
+      def pure[A](value: A): Effect[Other[A]] =
         self.pure(OtherApplicative.pure(value))
 
-      override def apply[A, B](fga: Effect[Other[A]])(ff: Effect[Other[A => B]]):
+      def apply[A, B](fga: Effect[Other[A]])(ff: Effect[Other[A => B]]):
         Effect[Other[B]] = {
           val helper: Effect[Other[A] => Other[B]] =
             self.map(ff)(gab => OtherApplicative.flip(gab))
@@ -100,35 +107,36 @@ import scala.language.higherKinds
 object Applicative {
 
   implicit val optionApplicative: Applicative[Option] = new Applicative[Option] {
-    override def pure[A](value: A): Option[A] = Option(value)
 
-    override def apply[A, B](fa: Option[A])(ff: Option[A => B]): Option[B] = (fa, ff) match {
-      case(None, _) => None
-      case(Some(a), None) => None
-      case(Some(a), Some(f)) => Some(f(a))
-    }
+    def pure[A](value: A): Option[A] =
+      Option(value)
+
+    def apply[A, B](fa: Option[A])(ff: Option[A => B]): Option[B] =
+      (fa, ff) match {
+        case(None, _) => None
+        case(Some(a), None) => None
+        case(Some(a), Some(f)) => Some(f(a))
+      }
   }
 
   implicit val listApplicative: Applicative[List] = new Applicative[List] {
-    override def pure[A](value: A): List[A] = List(value)
 
-    /* First implementation:
-      (fa zip ff).map { case(a,f) => f(a) }
-    scala> Applicative[List].map(List(1, 2, 3))(_ + 1)
-    res4: List[Int] = List(2)
-    */
-    override def apply[A, B](fa: List[A])(ff: List[A => B]): List[B] = for {
+    def pure[A](value: A): List[A] =
+      List(value)
+
+    def apply[A, B](fa: List[A])(ff: List[A => B]): List[B] = for {
         a <- fa
         f <- ff
       } yield f(a)
   }
 
-  // TODO stream applicative
   implicit val streamApplicative: Applicative[Stream] = new Applicative[Stream] {
 
-    override def pure[A](value: A): Stream[A] = ???
+    def pure[A](value: A): Stream[A] =
+      Stream.continually(value) // infinite Stream
 
-    override def apply[A, B](fa: Stream[A])(ff: Stream[(A) => B]): Stream[B] = ???
+    def apply[A, B](fa: Stream[A])(ff: Stream[A => B]): Stream[B] =
+      (fa zip ff).map { case(a,f) => f(a) }
   }
 
   // TODO Future applicative
@@ -142,18 +150,18 @@ trait ApplicativeLaws[Effect[_]] {
   implicit def Tested: Applicative[Effect]
 
   /* like Functor identity but in terms of apply and pure */
-  def applicativeIdentity[A](fa: Effect[A]) =
+  def applicativeIdentity[A](fa: Effect[A]): Boolean =
     fa.apply(Tested.pure((a:A) => a)) == fa
 
   /* apply lifetd function on lifted arg is like lifting result of applying f on a */
-  def applicativeHomomorphism[A, B](a: A, f: A => B) =
+  def applicativeHomomorphism[A, B](a: A, f: A => B): Boolean =
     Tested.pure(a).apply(Tested.pure(f)) == Tested.pure(f(a))
 
-  def applicativeInterchange[A, B](a: A, ff: Effect[A => B]) =
+  def applicativeInterchange[A, B](a: A, ff: Effect[A => B]): Boolean =
     Tested.pure(a).apply(ff) == ff.apply(Tested.pure((f: A => B) => f(a)))
 
   /* map have to be consistent with apply and pure */
-  def applicativeMap[A, B](fa: Effect[A], f: A => B) =
+  def applicativeMap[A, B](fa: Effect[A], f: A => B): Boolean =
     fa.map(f) == fa.apply(Tested.pure(f))
 }
 

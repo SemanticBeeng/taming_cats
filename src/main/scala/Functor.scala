@@ -74,16 +74,13 @@ trait Functor[Container[_]] { self =>
   def zipWith[A, B](contA: Container[A])(f: A => B): Container[(A,B)] = fproduct[A, B](contA)(f)
 
   /** Allow for composition of Functors (List of Option of ....) */
-  def compose[OtherFunctor[_]](implicit OtherFunctor: Functor[OtherFunctor]): // implicit ensure that OtherFun is a functor
-       Functor[Lambda[OtherContainer => Container[OtherFunctor[OtherContainer]]]] = // should be
-        // Functor[Container[OtherFun[?]]] but ? can't handle it
-        // 33:17 more how it works
+  def compose[OtherFunctor[_]](implicit OtherFunctor: Functor[OtherFunctor]): // implicit - ensure OtherFun is functor
+       Functor[Lambda[OtherContainer => Container[OtherFunctor[OtherContainer]]]] =
+          // should be Functor[Container[OtherFun[?]]] but scala can't handle
 
     new Functor[Lambda[OtherContainer => Container[OtherFunctor[OtherContainer]]]] {
       def map[A, B](composedCont: Container[OtherFunctor[A]])(f: A => B): Container[OtherFunctor[B]] =
         self.map(composedCont)(ga => OtherFunctor.map(ga)(a => f(a)))
-      // TODO check implementation
-      // self.map(composedCont)(ga => OtherFunctor.lift(f(a))
     }
 }
 
@@ -115,13 +112,13 @@ trait FunctorLaws[Container[_]] {
   implicit def testedFunctor: Functor[Container]
 
   // identity law
-  def identity[A](contA: Container[A]) =
+  def identity[A](contA: Container[A]): Boolean =
     testedFunctor.map(contA)(a => a) == contA
 
   // composition law
   def composition[A, B, C](
           contA: Container[A],
-          funFirstAtoB: A => B, funSecondBtoC: B => C) = {
+          funFirstAtoB: A => B, funSecondBtoC: B => C): Boolean = {
     val contMapped = testedFunctor.map(contA)(funFirstAtoB)
     val composedFirstWithSecond = funFirstAtoB andThen funSecondBtoC
     testedFunctor.map(contMapped)(funSecondBtoC) == testedFunctor.map(contA)(composedFirstWithSecond)

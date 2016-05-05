@@ -1,5 +1,6 @@
 import org.scalacheck.Prop._
 import org.scalacheck.{Arbitrary, Properties}
+import scala.language.higherKinds
 
 abstract class ApplicativeSpec[F[_]](name: String) (
   implicit F: Applicative[F],
@@ -60,5 +61,7 @@ abstract class ApplicativeSpec[F[_]](name: String) (
 object ListApplicativeSpec extends ApplicativeSpec[List]("List")
 
 object OptionApplicativeSpec extends ApplicativeSpec[Option]("Option")
+
+//object StreamApplicativeSpec extends ApplicativeSpec[Stream]("Stream Functor")
 
 

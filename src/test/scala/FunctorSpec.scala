@@ -1,5 +1,6 @@
 import org.scalacheck.{Arbitrary, Properties}
 import org.scalacheck.Prop.forAll
+import scala.language.higherKinds
 
 abstract class FunctorSpec[F[_]](name:String)(
   implicit F: Functor[F],
