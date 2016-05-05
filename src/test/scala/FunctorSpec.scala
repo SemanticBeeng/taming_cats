@@ -1,31 +1,46 @@
-
-import org.scalacheck.Properties
+import org.scalacheck.{Arbitrary, Properties}
 import org.scalacheck.Prop.forAll
 
-class FunctorSpec extends Properties("Functor") {
+abstract class FunctorSpec[F[_]](name:String)(
+  implicit F: Functor[F],
+  arbitraryInt: Arbitrary[F[Int]], // arbitrary generators
+  arbitraryString: Arbitrary[F[String]],
+  arbitraryDouble: Arbitrary[F[Double]] )
+  extends Properties(s"Functor $name") {
 
-  property("ListFunctor identity int") = forAll { (list: List[Int]) =>
-    FunctorLaws(Functor.listFunctor).identity(list)
+  val laws = FunctorLaws[F]
+
+  property("identity int") = forAll { (list: F[Int]) =>
+    laws.identity(list)
   }
 
-  property("ListFunctor identity String") = forAll { (list: List[String]) =>
-    FunctorLaws(Functor.listFunctor).identity(list)
+  property("identity String") = forAll { (list: F[String]) =>
+    laws.identity(list)
   }
 
-  property("ListFunctor identity Double") = forAll { (list: List[Double]) =>
-    FunctorLaws(Functor.listFunctor).identity(list)
+  property("identity Double") = forAll { (list: F[Double]) =>
+    laws.identity(list)
   }
 
-  property("OptionFunctor identity int") = forAll { (list: Option[Int]) =>
-    FunctorLaws(Functor.optionFunctor).identity(list)
+  property("composition int Str Double") = forAll {
+    (list: F[Int],
+     fa: Int => String, fb: String => Double) => laws.composition(list, fa, fb)
   }
 
-  property("OptionFunctor identity String") = forAll { (list: Option[String]) =>
-    FunctorLaws(Functor.optionFunctor).identity(list)
+  property("composition String") = forAll {
+    (list: F[String],
+     fa: String => String,
+     fb: String => String) => laws.composition(list, fa, fb)
   }
 
-  property("OptionFunctor identity Double") = forAll { (list: Option[Double]) =>
-    FunctorLaws(Functor.optionFunctor).identity(list)
+  property("composition Double String Double") = forAll {
+    (list: F[Double],
+     fa: Double => String,
+     fb: String => Double) => laws.composition(list, fa, fb)
   }
 
 }
+
+object ListFunctorLawSpec extends FunctorSpec[List]("List Functor")
+
+object OptionFunctorLawSpec extends FunctorSpec[Option]("Option Functor")

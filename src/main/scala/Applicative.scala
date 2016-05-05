@@ -31,6 +31,19 @@ import scala.language.higherKinds
 
   /**
     * Apply function under effect for value in effect
+    *
+    * For given value in effect take transformation under effect
+    * and apply it
+    *
+    * for List:  apply[A, B] (fa: List[A]) (ff: List[A => B]): List[B]
+    *
+    *            for list of A and list of functions from A to B
+    *            apply for each value appropriate function
+    *
+    * for Option: apply[A, B] (fa: Option[A]) (ff: Option[A => B]): Option[B]
+    *
+    *             for optional value A and optional transformation A to B
+    *             apply this transformation
     */
   def apply[A, B](fa: Effect[A])(ff: Effect[A => B]): Effect[B]
 
@@ -136,11 +149,17 @@ trait ApplicativeLaws[Effect[_]] {
   def applicativeHomomorphism[A, B](a: A, f: A => B) =
     Tested.pure(a).apply(Tested.pure(f)) == Tested.pure(f(a))
 
-  /* TODO 54.49 https://youtu.be/tD_EyIKqqCk?t=3289 */
   def applicativeInterchange[A, B](a: A, ff: Effect[A => B]) =
     Tested.pure(a).apply(ff) == ff.apply(Tested.pure((f: A => B) => f(a)))
 
+  /* map have to be consistent with apply and pure */
   def applicativeMap[A, B](fa: Effect[A], f: A => B) =
     fa.map(f) == fa.apply(Tested.pure(f))
 }
 
+object ApplicativeLaws {
+  def apply[Effect[_]](implicit applicative:Applicative[Effect]): ApplicativeLaws[Effect] =
+    new ApplicativeLaws[Effect] {
+      def Tested = applicative
+    }
+}

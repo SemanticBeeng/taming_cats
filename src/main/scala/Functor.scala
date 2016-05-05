@@ -87,6 +87,29 @@ trait Functor[Container[_]] { self =>
     }
 }
 
+object Functor {
+
+  implicit val listFunctor: Functor[List] = new Functor[List] {
+    override def map[A, B](list: List[A])(fun: A => B): List[B] =
+      list.map(fun)
+  }
+
+  implicit val optionFunctor: Functor[Option] = new Functor[Option] {
+    override def map[A, B](option: Option[A])(fun: (A) => B): Option[B] =
+      option.map(fun)
+  }
+
+  //  type OneArgFun[X] = Function1[X, _]
+  implicit def oneArgFunctionResultFunctor[X]: Functor[X => ?] = new Functor[X => ?] {
+    override def map[A, B](oneArgFun: X => A)(funAtoB: A => B): X => B =
+      oneArgFun andThen funAtoB
+  }
+
+  // TODO stream functor
+
+  // TODO future functor
+}
+
 trait FunctorLaws[Container[_]] {
 
   implicit def testedFunctor: Functor[Container]
@@ -110,27 +133,4 @@ object FunctorLaws {
     new FunctorLaws[Container] {
       def testedFunctor = functor
     }
-}
-
-object Functor {
-
-  implicit val listFunctor: Functor[List] = new Functor[List] {
-    override def map[A, B](list: List[A])(fun: A => B): List[B] =
-      list.map(fun)
-  }
-
-  implicit val optionFunctor: Functor[Option] = new Functor[Option] {
-    override def map[A, B](option: Option[A])(fun: (A) => B): Option[B] =
-      option.map(fun)
-  }
-
-//  type OneArgFun[X] = Function1[X, _]
-  implicit def oneArgFunctionResultFunctor[X]: Functor[X => ?] = new Functor[X => ?] {
-    override def map[A, B](oneArgFun: X => A)(funAtoB: A => B): X => B =
-      oneArgFun andThen funAtoB
-  }
-
-  // TODO stream functor
-
-  // TODO future functor
 }

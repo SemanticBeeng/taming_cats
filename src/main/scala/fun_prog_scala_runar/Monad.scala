@@ -19,8 +19,14 @@ trait Monad[M[_]] extends Applicative[M] {
   override def map2[A, B, C](ma: M[A], mb: M[B])(f: (A, B) => C): M[C] =
     flatMap(ma)(a => map(mb)(b => f(a,b)))
 
-  override def apply[A, B](ff: M[A => B])(fa: M[A]): M[B] =
-    flatMap(ff)((f:B) => flatMap(fa)(a => f(a)))
+//  def apply[A, B](ff: M[A => B])(fa: M[A]): M[B] = ???
+//    flatMap(ff)((f:B) => flatMap(fa)(a => f(a)))
+
+
+
+//  def apply[A, B](fa: List[A])(ff: List[(A) => B]): List[B] = ???
+
+  override def apply[A, B](fa: M[A])(ff: M[(A) => B]): M[B] = ???
 
   def sequence[A](lma: List[M[A]]): M[List[A]] =
     traverse(lma)(ma => ma)
@@ -46,6 +52,7 @@ trait Monad[M[_]] extends Applicative[M] {
 object Monad {
 
   val listMonad = new Monad[List] {
+
     def unit[A](a: => A): List[A] =
       List(a)
 
