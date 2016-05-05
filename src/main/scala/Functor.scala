@@ -1,18 +1,18 @@
-import java.awt.Container
-
 import simulacrum._
 import scala.language.higherKinds
 
 /*
  * Based on awesome video serie:
  * Functional Structures in Scala by Michael Pilquist
- * part: FSiS Part 1 - Type Constructors, Functors, and Kind Projector
- * https://www.youtube.com/watch?v=Dsd4pc99FSY
+ * FSiS Part 1 - Type Constructors, Functors, and Kind Projector
+ *   https://www.youtube.com/watch?v=Dsd4pc99FSY
+ * FSiS Part 2 - Applicative type class
+ *   https://youtu.be/tD_EyIKqqCk
  */
 
 /** Covariant functor */
-@typeclass trait Functor[Container[_]] { // abstract over Container (type constructor)
-  self => // alias for this class; usefull in compose inner trait
+@typeclass
+trait Functor[Container[_]] { self =>
 
   /** map a function from A to B on Container with As
     * to produce Container with B's */
@@ -21,27 +21,64 @@ import scala.language.higherKinds
   // derived methods; they work the right way if map is law abiding
 
   /** lift function operating of A (type of elements of container) and B
-    * to function that transforms Container[A] into Container[B] */
-  def lift[A, B](funAtoB: A => B): Container[A] => Container[B] =
-    contA => map(contA)(funAtoB)
+    * to function that transforms Container[A] into Container[B]
+    *
+    * for list:  lift[A, B] (f: A => B): List[A] => List[B]
+    *   promote function to work on lists
+    *
+    * for option: lift[A, B] (f: A => B): Option[A] => Option[B]
+    *   change function to work on Options (instead of arguments)
+    * */
+  def lift[A, B](f: A => B): Container[A] => Container[B] =
+    (contA: Container[A])
+      => map(contA)(f)
 
-  /** replace content of Container[A] with with value b */
+  /** replace content of Container[A] with with value b
+    *
+    * for List:  as[A, B] (fa: List[A], b: => B): List[B]
+    *    ignore existing elements in List and just put constant value inside List
+    *
+    * for Option:  as[A, B](fa: Option[A], b: => B): Option[B]
+    *    ignore existing value and just put constant value inside Option
+    * */
   def as[A, B](fa: Container[A], b: => B): Container[B] =
     map(fa)(_ => b)
 
-  /** clear the content, preserving the content */
+  /** clear the content, preserving the structure
+    *
+    * for List: void[A] (contA: List[A]): List[Unit]
+    *    create list with void values
+    *
+    * for Option: void[A](contA: Option[A]): Option[Unit]
+    *    create Option with void value
+    * */
   def void[A](contA: Container[A]): Container[Unit] =
-    as(contA, ()) // WTF is () empty list?
+    as(contA, ())
 
-  def fproduct[A, B](contA: Container[A])(funAtoB: A => B): Container[(A,B)] = {
-    def tupleArgumentWithdResult(a: A): (A, B) = (a, funAtoB(a))
-    map(contA)(tupleArgumentWithdResult)
+  /**
+    * take function and create Container with pair with element and result of invoking this function
+    *
+    * for Option: fproduct[A, B](option: Option[A])(f: A => B): Option[(A,B)]
+    *   return list of pairs (value, f(value))
+    *
+    * for List: fproduct[A, B](list: List[A])(f: A => B): List[(A,B)]
+    *   return Option with pair (value, f(value))
+    */
+  def fproduct[A, B](contA: Container[A])(f: A => B): Container[(A,B)] = {
+    def helper(a: A): (A, B) =
+      (a, f(a))
+
+    map(contA)(helper)
   }
 
+  def zipWith[A, B](contA: Container[A])(f: A => B): Container[(A,B)] = fproduct[A, B](contA)(f)
+
+  /** Allow for composition of Functors (List of Option of ....) */
   def compose[OtherFunctor[_]](implicit OtherFunctor: Functor[OtherFunctor]): // implicit ensure that OtherFun is a functor
        Functor[Lambda[OtherContainer => Container[OtherFunctor[OtherContainer]]]] = // should be
         // Functor[Container[OtherFun[?]]] but ? can't handle it
         // 33:17 more how it works
+
     new Functor[Lambda[OtherContainer => Container[OtherFunctor[OtherContainer]]]] {
       def map[A, B](composedCont: Container[OtherFunctor[A]])(f: A => B): Container[OtherFunctor[B]] =
         self.map(composedCont)(ga => OtherFunctor.map(ga)(a => f(a)))
@@ -50,31 +87,31 @@ import scala.language.higherKinds
     }
 }
 
-trait FunctorLaws {
+trait FunctorLaws[Container[_]] {
 
-  // FSiS Part 2 https://youtu.be/tD_EyIKqqCk?list=PLFrwDVdSrYE6dy14XCmUtRAJuhCxuzJp0&t=135
-  // TODO some package.scala maybe implicits in package object?
-  // TODO operator =:=
-  // TODO what is IsEq._
-  // TODO object FunctorLaws with apply method
-  // TODO why other param is not implicit?
+  implicit def testedFunctor: Functor[Container]
 
   // identity law
-  def identity[Container[_], A](contA: Container[A])(implicit testedFunctor: Functor[Container]) =
+  def identity[A](contA: Container[A]) =
     testedFunctor.map(contA)(a => a) == contA
 
   // composition law
-  def composition[Container[_], A, B, C](
+  def composition[A, B, C](
           contA: Container[A],
-          funFirstAtoB: A => B,
-          funSecondBtoC: B => C)(implicit testedFunctor: Functor[Container]) = {
+          funFirstAtoB: A => B, funSecondBtoC: B => C) = {
     val contMapped = testedFunctor.map(contA)(funFirstAtoB)
     val composedFirstWithSecond = funFirstAtoB andThen funSecondBtoC
     testedFunctor.map(contMapped)(funSecondBtoC) == testedFunctor.map(contA)(composedFirstWithSecond)
   }
 }
 
-// some instances of functor
+object FunctorLaws {
+  def apply[Container[_]](implicit functor:Functor[Container]): FunctorLaws[Container] =
+    new FunctorLaws[Container] {
+      def testedFunctor = functor
+    }
+}
+
 object Functor {
 
   implicit val listFunctor: Functor[List] = new Functor[List] {
@@ -92,4 +129,8 @@ object Functor {
     override def map[A, B](oneArgFun: X => A)(funAtoB: A => B): X => B =
       oneArgFun andThen funAtoB
   }
+
+  // TODO stream functor
+
+  // TODO future functor
 }
