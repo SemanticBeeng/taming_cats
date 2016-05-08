@@ -6,8 +6,7 @@ scalaVersion := "2.11.8"
 
 libraryDependencies ++= Seq(
   "com.github.mpilquist" %% "simulacrum" % "0.7.0",
-  "org.spire-math" %% "algebra" % "0.4.2",
-  "org.typelevel" %% "cats" % "0.5.0",
+  "org.typelevel" %% "cats" % "0.6.0-M1",
   "org.scalatest" %% "scalatest" % "3.0.0-M16-SNAP4" % Test,
   "org.scalacheck" %% "scalacheck" % "1.13.1" % Test
 )
