@@ -1,3 +1,5 @@
+import Functor.IntEither
+import Functor.Tuple2SameType
 import org.scalacheck.{Arbitrary, Properties}
 import org.scalacheck.Prop.forAll
 import scala.language.higherKinds
@@ -45,3 +47,15 @@ abstract class FunctorSpec[F[_]](name:String)(
 object ListFunctorLawSpec extends FunctorSpec[List]("List Functor")
 
 object OptionFunctorLawSpec extends FunctorSpec[Option]("Option Functor")
+
+// TODO probably it requires redefining equality - maybe cats Equal?
+// or manually create function takin care of async nature of computations
+//object FturueFunctorLawSpec extends FunctorSpec[Future]("Future Functor")
+
+// TODO comparing functions especiallly enerated is no trivial
+// maybe should ivoke them??? maybe cats Equal?
+//object IntFunctionFunctorLawSpec extends FunctorSpec[Int => ?]("Int Function Functor")
+
+object EitherIntFunctorLawSpec extends FunctorSpec[IntEither]("Either Int Functor")
+
+object TupleSameTypeFunctorLawSpec extends FunctorSpec[Tuple2SameType]("Tuple SameType Functor")

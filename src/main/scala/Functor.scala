@@ -1,19 +1,32 @@
 import simulacrum._
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.higherKinds
 
 /*
  * Implementation is based on:
- * Michael Pilquist, Functional Structures in Scala, Part (1) and (2)
+ * Michael Pilquist, Functional Structures in Scala:
+ *  FSiS Part 1 - Type Constructors, Functors, and Kind Projector: https://www.youtube.com/watch?v=Dsd4pc99FSY
+ *  FSiS Part 2 - Applicative type class: https://www.youtube.com/watch?v=tD_EyIKqqCk
+ *
+ * with my small changes to achive more readable code sacrificing brevity/speed/space (High hopes)
+ *
+ * Descriptions in comments contains:
+ * - https://wiki.haskell.org/Typeclassopedia
+ * - https://github.com/typelevel/cats/blob/master/docs/src/main/tut/functor.md
  */
 
 /**
-  * Covariant functor
+  * (Covariant) Functor - for things that can be mapped over :)
   *
-  * Abstracts over type constructor (generic type like List, Option
-  * not regular type like Integer).
+  * Functor is endofunctor from Cathegory theory:
+  * TODO Haskell: https://en.wikibooks.org/wiki/Haskell/Category_theory
   *
-  * Interpretation as container (3):
+  * Abstracts over type constructor (type with type parameter like List, Option
+  * not regular type like Integer or type with more than 1 parameter like Tuple)
+  * In other words - for types that have one "hole" :)
+  *
+  * Interpretation as container:
   *
   * Functor as container
   * ====================
@@ -24,8 +37,8 @@ import scala.language.higherKinds
   * For example:
   *  - list, tree, map - collection of elements and apply function to every element (List.map)
   *  - set is not a Functor (map with function that returns const value)
-  *    TODO make instance of a generalization http://article.gmane.org/gmane.comp.lang.haskell.cafe/78052/
-  *    TODO add associative constraint http://blog.omega-prime.co.uk/?p=127
+  *    TODO Haskell: make instance of a generalization http://article.gmane.org/gmane.comp.lang.haskell.cafe/78052/
+  *    TODO Haskell add associative constraint http://blog.omega-prime.co.uk/?p=127
   *  - option - container that can contain single value or may be empty and ability
   *     to apply function to its element or ignore function if it does not contain any function
   *
@@ -37,20 +50,17 @@ import scala.language.higherKinds
   * For example:
   *   list - nondeterministic choice: single element can have many possible values (elements of the list)
   *   option - possible failure
-  *
-  * =====
-  * (1) FSiS Part 1 - Type Constructors, Functors, and Kind Projector https://www.youtube.com/watch?v=Dsd4pc99FSY
-  * (2) FSiS Part 2 - Applicative type class https://www.youtube.com/watch?v=tD_EyIKqqCk
-  * (3) https://wiki.haskell.org/Typeclassopedia#Functor
-  * */
+  */
 @typeclass
 trait Functor[Container[_]] { self =>
 
   /**
-    * Apply function f to every element of container cont
-    * Output is container of results.
-    *
+    * Container interpret.: applies the function “inside” the container,
+    * producing a new container.
     * Does not change the structure of container.
+    *
+    * Computation context interpret.: applying a function
+    * to a value in a context (without altering the context)
     *
     * Haskell:
     *   class Functor f where
@@ -58,19 +68,22 @@ trait Functor[Container[_]] { self =>
     */
   def map[A, B](cont: Container[A])(g: A => B): Container[B]
 
-  // ~~@@@^^^^#####################################################
+  // ##############################################################
   // derived methods; they work the right way if map is law abiding
-  // ~~@@@^^^^#####################################################
+  // ##############################################################
 
-  /** lift function operating of A (type of elements of container) and B
-    * to function that transforms Container[A] into Container[B]
+  /**
+    * Transforms a “normal” function g from A to B into one
+    * which operates over containers/contexts Container[A] => Container[B].
     *
-    * for list:  lift[A, B] (f: A => B): List[A] => List[B]
-    *   promote function to work on lists
+    * “lifts” a function from the “normal world” into the “Container/Context world”.
     *
-    * for option: lift[A, B] (f: A => B): Option[A] => Option[B]
-    *   change function to work on Options (instead of arguments)
-    * */
+    * for List:  lift[A, B] (f: A => B): List[A] => List[B]
+    *   list function to work on lists
+    *
+    * for Option: lift[A, B] (f: A => B): Option[A] => Option[B]
+    *   change function to work on Options (instead of raw values)
+    */
   def lift[A, B](g: A => B): Container[A] => Container[B] =
     (contA: Container[A])
       => map(contA)(g)
@@ -140,32 +153,26 @@ object Functor {
         option.map(g)
     }
 
-  // functions that takes one argument of type Int: Function1[Int, _]
-  // use syntax from kind-projector
   implicit val oneArgFunctionsFromInt: Functor[Int => ?] =
     new Functor[Int => ?] {
       def map[A, B](g: Int => A)(h: A => B): Int => B =
         g andThen h
     }
 
-  // functions that take one argument of some type X: Function1[X, _]
-  // use syntax from kind-projector
-  implicit def oneArgFunctionsFromX[X]: Functor[X => ?] =
-    new Functor[X => ?] {
-      def map[A, B](g: X => A)(h: A => B): X => B =
-        g andThen h
+  implicit def oneArgFunctionsFromX[Input]: Functor[Input => ?] =
+    new Functor[Input => ?] {
+      def map[A, B](fun: Input => A)(g: A => B): Input => B =
+        fun andThen g
   }
 
-  type MyTuple1[T] = Tuple2[T, T] // TODO use kind-projector syntactic sugar
-  implicit val tupleSameTypeFunctor: Functor[MyTuple1] =
-    new Functor[MyTuple1] {
-      def map[A, B](tuple: MyTuple1[A])(g: A => B): MyTuple1[B] =
+  type Tuple2SameType[T] = Tuple2[T, T]
+  implicit val tupleSameTypeFunctor: Functor[Tuple2SameType] =
+    new Functor[Tuple2SameType] {
+      def map[A, B](tuple: Tuple2SameType[A])(g: A => B): Tuple2SameType[B] =
         (g(tuple._1), g(tuple._2))
     }
 
-  // TODO Functor for Tuple and generic parameter
-
-  type IntEither[T] = Either[Int, T] // TODO use kind-projector syntactic sugar
+  type IntEither[T] = Either[Int, T]
   implicit val eitherFunctor: Functor[IntEither] =
     new Functor[IntEither] {
       def map[A, B](either: IntEither[A])(g: A => B): IntEither[B] =
@@ -175,9 +182,7 @@ object Functor {
         }
     }
 
-  // TODO Functor for Either with generic parameter
-
-  // TODO stream functor
+  // TODO stream: functor
 
   implicit val futureFunctor: Functor[Future] =
     new Functor[Future] {
@@ -185,7 +190,7 @@ object Functor {
         future.map(g)
     }
 
-  /* TODO reader monad functor
+  /* TODO FPiS: reader monad functor
 
   ((->) e) (which can be thought of as (e ->); see above),
   the type of functions which take a value of type e as a parameter, is a Functor.
@@ -201,14 +206,14 @@ object Functor {
   more on this later.
   */
 
-  /* TODO IO monad functor
+  /* TODO FPiS: IO monad functor
 
   IO is a Functor; a value of type IO a represents a computation producing a value of type a which may have I/O effects.
   If m computes the value x while producing some I/O effects,
   then fmap g m will compute the value g x while producing the same I/O effects.
    */
 
-  /* TODO how Haskell monad for container with annotation is mapped for Scala?
+  /* TODO Haskell: how Haskell monad for container with annotation is mapped for Scala?
 
   ((,) e) represents a container which holds an “annotation” of type e along with the actual value it holds.
   It might be clearer to write it as (e,), by analogy with an operator section like (1+),
@@ -221,7 +226,24 @@ object Functor {
 /**
   * Rules for map function of Functor
   *
-  * https://hackage.haskell.org/package/base-4.8.2.0/docs/Prelude.html#t:Functor
+  * They ensure map
+  * (container intepretation) does not change the structure of container (only elements)
+  * (computation interpretation) map change the value without altering context
+  *
+  * Examples of things that would match the Functor signature but violate functor laws:
+  * - constant function map over set would not follow rules (violate only composition)
+  * - list with map that would add, remove or swat elements (violate both laws)
+  *
+  * Given type has at most one valid instance of Functor:
+  * TODO Haskell: (2011, Russell O'Connor: http://article.gmane.org/gmane.comp.lang.haskell.libraries/15384)
+  * based on free theorem:
+  * TODO Haskell: (1989/1990, Philip Wadler) http://homepages.inf.ed.ac.uk/wadler/topics/parametricity.html#free
+  *
+  * Any Functor instance satisfying the identity law
+  * will automatically satisfy composition law as well:
+  * TODO Haskell: David Luposchainsky: https://github.com/quchen/articles/blob/master/second_functor_law.md
+  * TODO Haskell: contrargument using undefined: http://stackoverflow.com/questions/8305949/haskell-functor-implied-law/8323243#8323243
+  * https://wiki.haskell.org/Typeclassopedia#Laws
   */
 trait FunctorLaws[Container[_]] {
 
@@ -229,8 +251,7 @@ trait FunctorLaws[Container[_]] {
 
   /** identity law:
     *
-    * if you use identity function to map over elemnts in Container
-    * then you get the same container
+    * Mapping the identity function over every item in the container has no effect
     *
     * Haskell:   fmap id  ==  id
     */
@@ -239,9 +260,8 @@ trait FunctorLaws[Container[_]] {
 
   /** composition law
     *
-    * For any two functions g and h it does not matter
-    * if you combine them and then map over container or
-    * map over container with g and then map over result container with h
+    * Mapping a composition of two functions over every item in container
+    * is the same as first mapping one function, and then mapping the other
     *
     * Haskell:    fmap (f . g)  ==  fmap f . fmap g
     */
