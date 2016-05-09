@@ -1,3 +1,5 @@
+package cathegory_theory
+
 import simulacrum.{typeclass, op}
 
 @typeclass trait Semigroup[A] extends Any {

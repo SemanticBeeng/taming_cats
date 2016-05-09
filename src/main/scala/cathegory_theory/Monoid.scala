@@ -1,4 +1,6 @@
-import simulacrum.{typeclass, op}
+package cathegory_theory
+
+import simulacrum.typeclass
 
 @typeclass trait Monoid[A] extends Any with Semigroup[A] {
   def empty: A

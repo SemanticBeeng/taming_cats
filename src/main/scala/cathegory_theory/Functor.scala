@@ -1,3 +1,5 @@
+package cathegory_theory
+
 import simulacrum._
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
